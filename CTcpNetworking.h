@@ -13,7 +13,6 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/un.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -38,15 +37,15 @@ private:
 
 public:
     CTcpNetworking(uint16_t port, const char *host = NULL, bool beServer = true, int domain = AF_INET);
-    virtual ~CTcpNetworking();
+    ~CTcpNetworking();
 
     int getPeerName(addressInfo_t &addressInfo, int sd = -1);
 
-    virtual int Listen(int backlog = 50);
-    virtual int Accept(struct sockaddr *addr=NULL, socklen_t *len=NULL);
-    virtual int Connect(const struct sockaddr *addr = NULL, socklen_t addrlen = 0);
-    virtual int Read(void *buf, size_t size, int sd = -1);
-    virtual int Write(void *buf, size_t size, int sd = -1);
+    int Listen(int backlog = 50);
+    int Accept(struct sockaddr *addr=NULL, socklen_t *len=NULL);
+    int Connect(const struct sockaddr *addr = NULL, socklen_t addrlen = 0);
+    int Read(void *buf, size_t size, int sd = -1);
+    int Write(void *buf, size_t size, int sd = -1);
 };
 #endif
 
