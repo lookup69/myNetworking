@@ -163,12 +163,14 @@ int CTcpNetworking::getPeerName(addressInfo_t &addressInfo, int sd)
         addressInfo.port = ntohs(addrIn6->sin6_port);
         inet_ntop(AF_INET6, &addrIn6->sin6_addr, ipTmp, sizeof(ipTmp));
         addressInfo.ip = ipTmp;
-    } else if(addressInfo.family == AF_UNIX) {
-        addressInfo.ip = ((struct sockaddr_un *)&name)->sun_path;
-        addressInfo.port = 0;
-    } else
+    } else 
         ret = -1;
 
     return ret;
+}
+
+int CTcpNetworking::Close(int sd)
+{
+    return close(sd);
 }
 
