@@ -105,28 +105,49 @@ _again:
 
 int CTcpNetworking::Read(void *buf, size_t size, int sd)
 {
-    int sockfd = (sd == -1) ? m_socket : sd;
-    int ret = 0;
+    int    sockfd = (sd == -1) ? m_socket : sd;
+    int    readBytes = 0;
+    size_t totalBytes = 0;
     
 _again:
-    if((ret = read(sockfd, buf, size)) < 0) {
-        if(errno == EINTR) goto _again;
-    }
+    do {
+        // It would read size to be 0 after socket closed.
+        if((readBytes = read(sockfd, ((char*)buf + totalBytes), size - (size_t)totalBytes)) <= 0) {
+            if(errno == EINTR) 
+                goto _again;
+            else 
+                break;
+        }
+        totalBytes += readBytes;
+    } while(totalBytes < size);
 
-    return ret;
+    if(readBytes < 0)
+        return readBytes; 
+
+    return totalBytes;
 }
 
 int CTcpNetworking::Write(void *buf, size_t size, int sd)
 {
-    int sockfd = (sd == -1) ? m_socket : sd;
-    int ret = 0;
+    int    sockfd = (sd == -1) ? m_socket : sd;
+    int    writeBytes = 0;
+    size_t totalBytes = 0;
 
 _again:
-    if((ret = write(sockfd, buf, size)) < 0) {
-        if(errno == EINTR) goto _again; 
-    }
+    do {
+        if((writeBytes = write(sockfd, ((char *)buf + totalBytes), size - totalBytes)) < 0) {
+            if(errno == EINTR) 
+                goto _again; 
+            else
+                break;
+        } 
+        totalBytes += writeBytes;
+    } while(totalBytes < size);
 
-    return ret;
+    if(writeBytes < 0)
+        return writeBytes;
+     
+    return totalBytes;
 }
 
 int CTcpNetworking::getPeerName(addressInfo_t &addressInfo, int sd)
