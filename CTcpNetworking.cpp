@@ -79,27 +79,35 @@ int CTcpNetworking::Listen(int backlog)
 
 int CTcpNetworking::Connect(const struct sockaddr *addr, socklen_t addrlen)
 {
-    if(addr == NULL) { 
-        return connect(m_socket, (struct sockaddr *)&m_addr, sizeof(m_addr));
-    } else
-        return connect(m_socket, addr, addrlen);
+    int ret = 0;
 
-    return -1;
+_again:
+    if(addr == NULL) 
+        ret = connect(m_socket, (struct sockaddr *)&m_addr, sizeof(m_addr));
+    else 
+        ret = connect(m_socket, addr, addrlen);
+
+    if((ret < 0) && (errno == EINTR))
+       goto _again;
+
+    return ret;
 }
 
 int CTcpNetworking::Accept(struct sockaddr *addr, socklen_t *len) 
 {
     int ret = 0;
+
 _again:
     if(addr == NULL) {
-        socklen_t socklen = sizeof(m_cliAddr);;
+        socklen_t socklen = sizeof(m_cliAddr);
 
-        if((ret = accept(m_socket, (struct sockaddr *)&m_cliAddr, &socklen)) < 0)
-            if(errno == EAGAIN) goto _again; 
+        ret = accept(m_socket, (struct sockaddr *)&m_cliAddr, &socklen);
     } else {
-        if((ret = accept(m_socket, addr, len)) < 0)
-            if(errno == EAGAIN) goto _again; 
+        ret = accept(m_socket, addr, len);
     }
+
+    if ((ret < 0) && ((errno == EINTR) || (errno == EAGAIN))) 
+        goto _again; 
 
     return ret;
 }
@@ -114,7 +122,7 @@ _again:
     do {
         // It would read size to be 0 after socket closed.
         if((readBytes = read(sockfd, ((char*)buf + totalBytes), size - (size_t)totalBytes)) <= 0) {
-            if(errno == EAGAIN) 
+            if((errno == EAGAIN) || (errno == EINTR)) 
                 goto _again;
             else 
                 break;
@@ -137,7 +145,7 @@ int CTcpNetworking::Write(void *buf, size_t size, int sd)
 _again:
     do {
         if((writeBytes = write(sockfd, ((char *)buf + totalBytes), size - totalBytes)) < 0) {
-            if(errno == EAGAIN) 
+            if((errno == EAGAIN) || (errno == EINTR)) 
                 goto _again; 
             else
                 break;
