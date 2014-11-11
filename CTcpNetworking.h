@@ -46,6 +46,7 @@ public:
     int Connect(const struct sockaddr *addr = NULL, socklen_t addrlen = 0);
     int Read(void *buf, size_t size, int sd = -1);
     int Write(void *buf, size_t size, int sd = -1);
+    int Close(int sd);
 };
 #endif
 

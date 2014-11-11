@@ -10,6 +10,7 @@
 #include "CTcpNetworking.h"
 #include <errno.h>
 #include <string.h>
+#include <stdio.h>
 
 CTcpNetworking::CTcpNetworking(uint16_t port, const char *host, bool beServer, int domain)
     : m_socket(-1), m_isServer(beServer), m_domain(domain), m_port(port)
@@ -94,10 +95,10 @@ _again:
         socklen_t socklen = sizeof(m_cliAddr);;
 
         if((ret = accept(m_socket, (struct sockaddr *)&m_cliAddr, &socklen)) < 0)
-            if(errno == EINTR) goto _again; 
+            if(errno == EAGAIN) goto _again; 
     } else {
         if((ret = accept(m_socket, addr, len)) < 0)
-            if(errno == EINTR) goto _again; 
+            if(errno == EAGAIN) goto _again; 
     }
 
     return ret;
@@ -113,7 +114,7 @@ _again:
     do {
         // It would read size to be 0 after socket closed.
         if((readBytes = read(sockfd, ((char*)buf + totalBytes), size - (size_t)totalBytes)) <= 0) {
-            if(errno == EINTR) 
+            if(errno == EAGAIN) 
                 goto _again;
             else 
                 break;
@@ -136,7 +137,7 @@ int CTcpNetworking::Write(void *buf, size_t size, int sd)
 _again:
     do {
         if((writeBytes = write(sockfd, ((char *)buf + totalBytes), size - totalBytes)) < 0) {
-            if(errno == EINTR) 
+            if(errno == EAGAIN) 
                 goto _again; 
             else
                 break;
