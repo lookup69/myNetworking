@@ -18,35 +18,56 @@
 #include <netdb.h>
 #include <string>
 
-typedef struct {
-    int         family;
-    uint16_t    port;
-    std::string ip;
-} addressInfo_t;
+namespace lookup69 {
 
-class CTcpNetworking 
-{
-private:
-    int                     m_socket;
-    int                     m_isServer;
-    int                     m_domain;
-    int                     m_port;
-    std::string             m_host;
-    struct sockaddr_storage m_addr;
-    struct sockaddr_storage m_cliAddr;
+    typedef struct {
+        int         family;
+        uint16_t    port;
+        std::string ip;
+    } addressInfo_t;
 
-public:
-    CTcpNetworking(uint16_t port, const char *host = NULL, bool beServer = true, int domain = AF_INET);
-    ~CTcpNetworking();
+    class CTcpNetworking
+    {
+    private:
+        int                     m_socket;
+        int                     m_isServer;
+        int                     m_domain;
+        int                     m_port;
+        bool                    m_isInitialized;
+        std::string             m_host;
+        struct sockaddr_storage m_addr;
+        struct sockaddr_storage m_cliAddr;
 
-    int getPeerName(addressInfo_t &addressInfo, int sd = -1);
+    public:
+        CTcpNetworking(uint16_t port, const char *host = NULL, bool beServer = true, int domain = AF_INET);
+        ~CTcpNetworking();
 
-    int Listen(int backlog = 50);
-    int Accept(struct sockaddr *addr=NULL, socklen_t *len=NULL);
-    int Connect(const struct sockaddr *addr = NULL, socklen_t addrlen = 0);
-    int Read(void *buf, size_t size, int sd = -1);
-    int Write(void *buf, size_t size, int sd = -1);
-    int Close(int sd);
-};
+        int initNetwork(bool bAutoLisentOrConnect = true);
+        int getPeerName(addressInfo_t &addressInfo, int sd = -1);
+
+        int Listen(int backlog = 50)
+        {
+            return listen(m_socket, backlog);
+        }
+
+        int Accept(struct sockaddr *addr = NULL, socklen_t *len = NULL);
+
+        int Connect(const struct sockaddr *addr = NULL, socklen_t addrlen = 0)
+        {
+            if(addr == NULL)
+                return connect(m_socket, (struct sockaddr *)&m_addr, sizeof(m_addr));
+
+            return connect(m_socket, addr, addrlen);
+        }
+
+        int Read(void *buf, size_t size, int sd = -1);
+        int Write(void *buf, size_t size, int sd = -1);
+
+        int Close(int sd)
+        {
+            return close(sd);
+        }
+    };
+}
 #endif
 

@@ -8,62 +8,18 @@
  */
 
 #include "CTcpNetworking.h"
+
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
 
+using namespace lookup69;
+
 CTcpNetworking::CTcpNetworking(uint16_t port, const char *host, bool beServer, int domain)
-    : m_socket(-1), m_isServer(beServer), m_domain(domain), m_port(port)
+    : m_socket(-1), m_isServer(beServer), m_domain(domain), m_port(port), m_isInitialized(false)
 {
-    struct sockaddr_in  *pAddrIn = (struct sockaddr_in *) &m_addr;
-    struct sockaddr_in6 *pAddrIn6 = (struct sockaddr_in6 *) &m_addr;
-    int                 flagOn = 1;
-
-    if((m_socket = socket(domain, SOCK_STREAM, 0)) < 0) {
-        throw("CTcpNetworking::CTcpNetworking");
-    }
-
-    memset(&m_addr, 0, sizeof(m_addr));
-
-    if(!beServer && (host == NULL)) {
-        throw("CTcpNetworking::CTcpNetworking");
-    }
-
-    if(beServer) {
-        if(setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, (void *)&flagOn, sizeof(flagOn))){
-            printf("[%s][%s][%d] setsockopt()....fail\n", __FILE__, __FUNCTION__, __LINE__);
-            throw("CTcpNetworking::CTcpNetworking");
-        }
-    }
-
-    if(domain == AF_INET) {
-        pAddrIn->sin_family = AF_INET;
-        pAddrIn->sin_addr.s_addr = (beServer) ? htonl(INADDR_ANY) : inet_addr(host);
-        pAddrIn->sin_port = htons(port);
-          
-        if(beServer)
-            if(bind(m_socket, (struct sockaddr *) pAddrIn, sizeof(struct sockaddr_in)) < 0) {
-                printf("[%s][%s][%d] bind()....fail\n", __FILE__, __FUNCTION__, __LINE__);
-                throw("CTcpNetworking::CTcpNetworking");
-            }
-    } else if(domain == AF_INET6) {
-        const struct in6_addr in6addr_any = IN6ADDR_ANY_INIT;
-
-        pAddrIn6->sin6_family = AF_INET6;
-        if(beServer) 
-            pAddrIn6->sin6_addr = in6addr_any;
-        else
-            inet_pton(AF_INET6, host, &(pAddrIn6->sin6_addr.s6_addr));
-        pAddrIn6->sin6_port = htons(port);
-
-        if(beServer) 
-            if(bind(m_socket, (struct sockaddr *) pAddrIn6, sizeof(struct sockaddr_in6)) < 0) {
-                    printf("[%s][%s][%d] bind()....fail\n", __FILE__, __FUNCTION__, __LINE__);
-                    throw("CTcpNetworking::CTcpNetworking");
-            }
-    } else {
-        throw("CTcpNetworking::CTcpNetworking");
-    }
+    if(host)
+        m_host = host;
 }
 
 CTcpNetworking::~CTcpNetworking()     
@@ -72,91 +28,116 @@ CTcpNetworking::~CTcpNetworking()
         close(m_socket) ;
 }
 
-int CTcpNetworking::Listen(int backlog) 
+int CTcpNetworking::initNetwork(bool bAutoLisentOrConnect)
 {
-    return listen(m_socket, backlog);
+    struct sockaddr_in  *pAddrIn = (struct sockaddr_in *) &m_addr;
+    struct sockaddr_in6 *pAddrIn6 = (struct sockaddr_in6 *) &m_addr;
+    int rtn = 0;
+
+    if(m_isInitialized) 
+        return 0;
+
+    if(!m_isServer && (m_host.empty())) 
+        return -1;
+
+    if((m_socket = socket(m_domain, SOCK_STREAM, 0)) < 0)
+        return -1;
+
+    if(m_isServer) {
+        int flagOn = 1;
+
+        rtn = setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, (void *)&flagOn, sizeof(flagOn));
+    }
+
+    // set address
+    memset(&m_addr, 0, sizeof(m_addr));
+    if(m_domain == AF_INET) {
+        pAddrIn->sin_family = AF_INET;
+        pAddrIn->sin_addr.s_addr = (m_isServer) ? htonl(INADDR_ANY) : inet_addr(m_host.c_str());
+        pAddrIn->sin_port = htons(m_port);
+
+        if((rtn == 0) && m_isServer) 
+            rtn = bind(m_socket, (struct sockaddr *) pAddrIn, sizeof(struct sockaddr_in));
+
+    } else if(m_domain == AF_INET6) {
+        const struct in6_addr in6addr_any = IN6ADDR_ANY_INIT;
+
+        pAddrIn6->sin6_family = AF_INET6;
+        if(m_isServer) 
+            pAddrIn6->sin6_addr = in6addr_any;
+        else
+            inet_pton(AF_INET6, m_host.c_str(), &(pAddrIn6->sin6_addr.s6_addr));
+        pAddrIn6->sin6_port = htons(m_port);
+
+        if((rtn == 0) && m_isServer) 
+            rtn = bind(m_socket, (struct sockaddr *) pAddrIn6, sizeof(struct sockaddr_in6));
+    } else {
+        rtn = -1;
+    }
+
+    if((rtn == 0) && bAutoLisentOrConnect) {
+        if(m_isServer) 
+            rtn = Listen();
+        else 
+            rtn = Connect();
+    }
+
+    if(rtn == 0) {
+        m_isInitialized = true;
+    } else {
+        close(m_socket);
+        m_socket = -1;
+        return -1;
+    } 
+
+    return 0;
 }
 
-int CTcpNetworking::Connect(const struct sockaddr *addr, socklen_t addrlen)
-{
-    int ret = 0;
 
-_again:
-    if(addr == NULL) 
-        ret = connect(m_socket, (struct sockaddr *)&m_addr, sizeof(m_addr));
-    else 
-        ret = connect(m_socket, addr, addrlen);
-
-    if((ret < 0) && (errno == EINTR))
-       goto _again;
-
-    return ret;
-}
 
 int CTcpNetworking::Accept(struct sockaddr *addr, socklen_t *len) 
 {
     int ret = 0;
 
-_again:
+again_:
     if(addr == NULL) {
-        socklen_t socklen = sizeof(m_cliAddr);
+        socklen_t socklen = sizeof(m_cliAddr);;
 
-        ret = accept(m_socket, (struct sockaddr *)&m_cliAddr, &socklen);
+        if((ret = accept(m_socket, (struct sockaddr *)&m_cliAddr, &socklen)) < 0)
+            if(errno == EAGAIN) goto again_; 
     } else {
-        ret = accept(m_socket, addr, len);
+        if((ret = accept(m_socket, addr, len)) < 0)
+            if(errno == EAGAIN) goto again_; 
     }
-
-    if ((ret < 0) && ((errno == EINTR) || (errno == EAGAIN))) 
-        goto _again; 
 
     return ret;
 }
 
 int CTcpNetworking::Read(void *buf, size_t size, int sd)
 {
-    int    sockfd = (sd == -1) ? m_socket : sd;
-    int    readBytes = 0;
-    size_t totalBytes = 0;
+    int sockfd = (sd == -1) ? m_socket : sd;
+    int n = 0;
     
-_again:
-    do {
-        // It would read size to be 0 after socket closed.
-        if((readBytes = read(sockfd, ((char*)buf + totalBytes), size - (size_t)totalBytes)) <= 0) {
-            if((errno == EAGAIN) || (errno == EINTR)) 
-                goto _again;
-            else 
-                break;
-        }
-        totalBytes += readBytes;
-    } while(totalBytes < size);
+again_:
+    // It would read size to be 0 after socket closed.
+    if((n = read(sockfd, (char *)buf, size)) < 0)
+        if(errno == EAGAIN) 
+            goto again_;
 
-    if(readBytes < 0)
-        return readBytes; 
-
-    return totalBytes;
+    return n;
 }
 
 int CTcpNetworking::Write(void *buf, size_t size, int sd)
 {
     int    sockfd = (sd == -1) ? m_socket : sd;
-    int    writeBytes = 0;
-    size_t totalBytes = 0;
+    int    n = 0;
 
-_again:
-    do {
-        if((writeBytes = write(sockfd, ((char *)buf + totalBytes), size - totalBytes)) < 0) {
-            if((errno == EAGAIN) || (errno == EINTR)) 
-                goto _again; 
-            else
-                break;
-        } 
-        totalBytes += writeBytes;
-    } while(totalBytes < size);
-
-    if(writeBytes < 0)
-        return writeBytes;
+again_:
+    if((n = write(sockfd, (char *)buf, size)) < 0) 
+        if(errno == EAGAIN) 
+            goto again_; 
      
-    return totalBytes;
+    return n;
 }
 
 int CTcpNetworking::getPeerName(addressInfo_t &addressInfo, int sd)
@@ -166,15 +147,12 @@ int CTcpNetworking::getPeerName(addressInfo_t &addressInfo, int sd)
     int                     ret;
 
     memset(&name, 0, sizeof(name));
-
     if(sd == -1) {
         if((ret = getpeername(m_socket, (struct sockaddr *)&name, &socklen)) < 0) {
-            printf("getpeername() fail\n");
             return ret;
         } 
     } else {
         if((ret = getpeername(sd, (struct sockaddr *) &name, &socklen)) < 0) {
-            printf("getpeername() fail\n");
             return ret;
         } 
     }
@@ -199,8 +177,4 @@ int CTcpNetworking::getPeerName(addressInfo_t &addressInfo, int sd)
     return ret;
 }
 
-int CTcpNetworking::Close(int sd)
-{
-    return close(sd);
-}
 
