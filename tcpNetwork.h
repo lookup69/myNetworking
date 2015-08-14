@@ -7,8 +7,8 @@
  *
  */
 
-#ifndef __CTCP_NETWORKING_H__
-#define __CTCP_NETWORKING_H__
+#ifndef __LOOKUP69_TCP_NETWORKING_H__
+#define __LOOKUP69_TCP_NETWORKING_H__
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -19,14 +19,13 @@
 #include <string>
 
 namespace lookup69 {
-
     typedef struct {
         int         family;
         uint16_t    port;
         std::string ip;
     } addressInfo_t;
 
-    class CTcpNetworking
+    class TcpNetwork
     {
     private:
         int                     m_socket;
@@ -39,8 +38,8 @@ namespace lookup69 {
         struct sockaddr_storage m_cliAddr;
 
     public:
-        CTcpNetworking(uint16_t port, const char *host = NULL, bool beServer = true, int domain = AF_INET);
-        ~CTcpNetworking();
+        TcpNetwork(uint16_t port, const char *host = NULL, bool beServer = true, int domain = AF_INET);
+        ~TcpNetwork();
 
         int initNetwork(bool bAutoLisentOrConnect = true);
         int getPeerName(addressInfo_t &addressInfo, int sd = -1);

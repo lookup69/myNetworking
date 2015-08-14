@@ -7,7 +7,7 @@
  *
  */
 
-#include "CTcpNetworking.h"
+#include "tcpNetwork.h"
 
 #include <errno.h>
 #include <string.h>
@@ -15,20 +15,20 @@
 
 using namespace lookup69;
 
-CTcpNetworking::CTcpNetworking(uint16_t port, const char *host, bool beServer, int domain)
+TcpNetwork::TcpNetwork(uint16_t port, const char *host, bool beServer, int domain)
     : m_socket(-1), m_isServer(beServer), m_domain(domain), m_port(port), m_isInitialized(false)
 {
     if(host)
         m_host = host;
 }
 
-CTcpNetworking::~CTcpNetworking()     
+TcpNetwork::~TcpNetwork()     
 {
     if(m_socket != -1)
         close(m_socket) ;
 }
 
-int CTcpNetworking::initNetwork(bool bAutoLisentOrConnect)
+int TcpNetwork::initNetwork(bool bAutoLisentOrConnect)
 {
     struct sockaddr_in  *pAddrIn = (struct sockaddr_in *) &m_addr;
     struct sockaddr_in6 *pAddrIn6 = (struct sockaddr_in6 *) &m_addr;
@@ -95,7 +95,7 @@ int CTcpNetworking::initNetwork(bool bAutoLisentOrConnect)
 
 
 
-int CTcpNetworking::Accept(struct sockaddr *addr, socklen_t *len) 
+int TcpNetwork::Accept(struct sockaddr *addr, socklen_t *len) 
 {
     int ret = 0;
 
@@ -113,7 +113,7 @@ again_:
     return ret;
 }
 
-int CTcpNetworking::Read(void *buf, size_t size, int sd)
+int TcpNetwork::Read(void *buf, size_t size, int sd)
 {
     int sockfd = (sd == -1) ? m_socket : sd;
     int n = 0;
@@ -127,7 +127,7 @@ again_:
     return n;
 }
 
-int CTcpNetworking::Write(void *buf, size_t size, int sd)
+int TcpNetwork::Write(void *buf, size_t size, int sd)
 {
     int    sockfd = (sd == -1) ? m_socket : sd;
     int    n = 0;
@@ -140,7 +140,7 @@ again_:
     return n;
 }
 
-int CTcpNetworking::getPeerName(addressInfo_t &addressInfo, int sd)
+int TcpNetwork::getPeerName(addressInfo_t &addressInfo, int sd)
 {
     struct sockaddr_storage name;
     socklen_t               socklen = sizeof(name);
