@@ -100,15 +100,9 @@ int TcpNetwork::Accept(struct sockaddr *addr, socklen_t *len)
     int ret = 0;
 
 again_:
-    if(addr == NULL) {
-        socklen_t socklen = sizeof(m_cliAddr);;
-
-        if((ret = accept(m_socket, (struct sockaddr *)&m_cliAddr, &socklen)) < 0)
-            if(errno == EAGAIN) goto again_; 
-    } else {
-        if((ret = accept(m_socket, addr, len)) < 0)
-            if(errno == EAGAIN) goto again_; 
-    }
+    if((ret = accept(m_socket, addr, len)) < 0)
+        if(errno == EAGAIN) 
+            goto again_; 
 
     return ret;
 }
@@ -118,6 +112,10 @@ int TcpNetwork::Read(void *buf, size_t size, int sd)
     int sockfd = (sd == -1) ? m_socket : sd;
     int n = 0;
     
+    // The server can't use the default socket to read
+    if(m_isServer && (sd == -1)) 
+        return -1;
+
 again_:
     // It would read size to be 0 after socket closed.
     if((n = read(sockfd, (char *)buf, size)) < 0)
@@ -132,6 +130,9 @@ int TcpNetwork::Write(void *buf, size_t size, int sd)
     int    sockfd = (sd == -1) ? m_socket : sd;
     int    n = 0;
 
+    // The server can't use the default socket to write.
+    if(m_isServer && (sd == -1)) 
+        return -1;
 again_:
     if((n = write(sockfd, (char *)buf, size)) < 0) 
         if(errno == EAGAIN) 
