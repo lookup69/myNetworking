@@ -11,12 +11,14 @@
 #define __LOOKUP69_TCP_NETWORKING_H__
 
 #include <unistd.h>
+//#include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <netinet/tcp.h>
+//#include <netinet/tcp.h>
 #include <netdb.h>
+#include <string.h>
 
 #include <string>
 
@@ -26,6 +28,56 @@ namespace lookup69 {
         uint16_t    port;
         std::string ip;
     } addressInfo_t;
+
+    class TcpSocket
+    {
+    private:
+        int m_socket;
+
+    private:
+        TcpSocket(const TcpSocket &);
+        TcpSocket &operator=(const TcpSocket &);
+    public:
+        TcpSocket(int sd);
+        ~TcpSocket();
+
+        int getAddrInfo(addressInfo_t &addressInfo);
+        int read(void *buf, size_t size);
+        int write(void *buf, size_t size);
+        void close(void);
+    };
+
+    class TcpServer
+    {
+    private:
+        int                     m_socket;
+
+        TcpServer(const TcpServer &);
+        TcpServer &operator=(const TcpServer &);
+    public:
+        TcpServer();
+        virtual ~TcpServer();
+        
+        int serverInit(uint16_t port, int family = AF_UNSPEC, int backlog = 50, int protocol = 0);
+
+        // need release(delete) connection 
+        TcpSocket *getConnection(void);
+    };
+
+
+    class TcpClient
+    {
+    private:
+        int         m_socket;
+
+    public:
+        TcpClient();
+        virtual ~TcpClient();
+
+        int clientInit(const std::string &host, uint16_t port, int family = AF_UNSPEC);
+        TcpSocket* getConnection(void);
+    };
+
 
     class TcpNetwork
     {

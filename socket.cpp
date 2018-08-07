@@ -5,21 +5,28 @@
 #include <sys/socket.h>
 #include "socket.h"
 
+using namespace lookup69;
 
-CSocket::CSocket(int dommain, int type, int protocal)
+Socket::Socket() : m_sockfd(-1) 
 {
-    m_sockfd = socket(dommain, type, protocal);
-    if(m_sockfd < 0)
-        fprintf(stderr, "[File:%s][%s][Line:%d] socket() ... fail\n", __FILE__, __PRETTY_FUNCTION__, __LINE__);
 }
 
-CSocket::~CSocket(void)
+Socket::~Socket(void)
 {
     if(m_sockfd >= 0)
         close(m_sockfd);
 }
 
-bool CSocket::isSocketOpen(void)
+int Socket::openSocket(int dommain, int type, int protocol)
+{
+    m_sockfd = socket(dommain, type, protocol);
+    if(m_sockfd < 0)
+        fprintf(stderr, "[File:%s][Func:%s][Line:%d] socket() ... fail\n", __FILE__, __PRETTY_FUNCTION__, __LINE__);
+
+    return m_sockfd;
+}
+
+bool Socket::isSocketOpen(void)
 {
     if(m_sockfd >= 0)
         return true;
@@ -27,7 +34,7 @@ bool CSocket::isSocketOpen(void)
     return false;
 }
 
-int CSocket::getSocketFamily(void)
+int Socket::getSocketFamily(void)
 {
     struct sockaddr sa;
     socklen_t len = sizeof(sa);
@@ -41,7 +48,7 @@ int CSocket::getSocketFamily(void)
 }
 
 
-int CSocket::setSocketReuseAddr(int bOptVal)
+int Socket::setSocketReuseAddr(int bOptVal)
 {
     if(m_sockfd >= 0)
         return setsockopt(m_sockfd, SOL_SOCKET, SO_REUSEADDR, &bOptVal, sizeof(bOptVal));
@@ -49,7 +56,7 @@ int CSocket::setSocketReuseAddr(int bOptVal)
     return -1;
 }
 
-int CSocket::isSocketReuseAddr(void)
+int Socket::isSocketReuseAddr(void)
 {
     socklen_t len;
     int optVal = -1;
@@ -62,7 +69,7 @@ int CSocket::isSocketReuseAddr(void)
     return optVal;    
 }
 
-int CSocket::setSocketKeepAlive(int bOptVal)
+int Socket::setSocketKeepAlive(int bOptVal)
 {
     if(m_sockfd >= 0)
         return setsockopt(m_sockfd, SOL_SOCKET, SO_KEEPALIVE, &bOptVal, sizeof(bOptVal));
@@ -72,7 +79,7 @@ int CSocket::setSocketKeepAlive(int bOptVal)
     return -1;
 }
 
-bool CSocket::isSocketKeepAlive(void)
+bool Socket::isSocketKeepAlive(void)
 {
     socklen_t len;
     int optVal = -1;
@@ -84,7 +91,7 @@ bool CSocket::isSocketKeepAlive(void)
     return optVal;    
 }
 
-int CSocket::setSockOpt(int level, int optname, void *optval, socklen_t optlen)
+int Socket::setSockOpt(int level, int optname, void *optval, socklen_t optlen)
 {
     int ret;
 
