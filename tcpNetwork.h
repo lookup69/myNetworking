@@ -10,75 +10,70 @@
 #ifndef __LOOKUP69_TCP_NETWORKING_H__
 #define __LOOKUP69_TCP_NETWORKING_H__
 
+
 #include <unistd.h>
-//#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 //#include <netinet/tcp.h>
 #include <netdb.h>
 #include <string.h>
 
 #include <string>
 
-namespace lookup69 {
-    typedef struct {
-        int         family;
-        uint16_t    port;
-        std::string ip;
-    } addressInfo_t;
+#include "socket.h"
 
-    class TcpSocket
+namespace lookup69 {
+    class TcpSocket : public Socket
     {
     private:
-        int m_socket;
-
-    private:
+        // Hide interface
         TcpSocket(const TcpSocket &);
         TcpSocket &operator=(const TcpSocket &);
-    public:
-        TcpSocket(int sd);
-        ~TcpSocket();
 
-        int getAddrInfo(addressInfo_t &addressInfo);
-        int read(void *buf, size_t size);
-        int write(void *buf, size_t size);
-        void close(void);
+    public:
+        TcpSocket(int sd = -1);
+        virtual ~TcpSocket();
+
+        int bind(uint16_t port, int family = AF_UNSPEC);
+        int listen(int backlog = 50);
+        int accpet(void);
+        int connect(const std::string &host, uint16_t port, int family = AF_UNSPEC);
+        Socket *getConnection(void);
     };
 
     class TcpServer
     {
     private:
-        int                     m_socket;
+        TcpSocket m_tcpSocket;
 
+        // Hide interface
         TcpServer(const TcpServer &);
         TcpServer &operator=(const TcpServer &);
+
     public:
         TcpServer();
         virtual ~TcpServer();
         
-        int serverInit(uint16_t port, int family = AF_UNSPEC, int backlog = 50, int protocol = 0);
+        int serverInit(uint16_t port, int family = AF_UNSPEC, int backlog = 50);
 
-        // need release(delete) connection 
-        TcpSocket *getConnection(void);
+        Socket *getConnection(void);
+        void releaseConnection(Socket *socket);
     };
 
 
     class TcpClient
     {
     private:
-        int         m_socket;
+        TcpSocket m_tcpSocket;
 
     public:
         TcpClient();
         virtual ~TcpClient();
 
         int clientInit(const std::string &host, uint16_t port, int family = AF_UNSPEC);
-        TcpSocket* getConnection(void);
+        Socket* getConnection(void);
+        void releaseConnection(Socket *socket);
     };
 
-
+#if 0
     class TcpNetwork
     {
     private:
@@ -122,6 +117,7 @@ namespace lookup69 {
             return close(sd);
         }
     };
+#endif
 }
 #endif
 

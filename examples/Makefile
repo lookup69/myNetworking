@@ -5,7 +5,7 @@ LDFLAGS  =
 CPPFLAGS = -g -Wall -fpermissive -std=c++11
 CFLAGS   = -g -Wall
 
-TCP_LIB_SRCS       = ../tcpNetwork.cpp
+TCP_LIB_SRCS       = ../socket.cpp ../tcpNetwork.cpp
 TCP_LIB_OBJS       = $(addsuffix .o, $(basename $(TCP_LIB_SRCS)))
 TCP_LIB_DEPS       = $(addsuffix .d, $(basename $(TCP_LIB_SRCS)))
 
@@ -40,13 +40,13 @@ TCP_CLIENT: $(TCP_LIB_OBJS) $(TCP_CLIENT_OBJS)
 
 
 $(TCP_LIB_OBJS) : $(TCP_LIB_SRCS) 
-	g++ $(CPPFLAGS) -c $< -o $@
+	g++ $(CPPFLAGS) -c $*.cpp -o $@
 
 $(TCP_SERVER_OBJS) : $(TCP_SERVER_SRCS)
-	g++ $(CPPFLAGS) -c $< -o $@
+	g++ $(CPPFLAGS) -c $*.cpp -o $@
 
 $(TCP_CLIENT_OBJS) : $(TCP_CLIENT_SRCS)
-	g++ $(CPPFLAGS) -c $< -o $@
+	g++ $(CPPFLAGS) -c $*.cpp -o $@
 
 #include dependency
 #-include $(TCP_LIB_DEPS)

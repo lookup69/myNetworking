@@ -43,8 +43,7 @@ int main(int argc, char *argv[])
         addressInfo_t addrInfo;
         pid_t         pid;
 
-        TcpSocket *s = tcpServer.getConnection();
-        
+        Socket *s = tcpServer.getConnection();
         if(s) {
             s->getAddrInfo(addrInfo);    
             pid = fork();
@@ -60,10 +59,10 @@ int main(int argc, char *argv[])
                     if(s->write(wbuf, strlen(wbuf)) < 0)
                         break;
                 }
-                delete s;
+                tcpServer.releaseConnection(s);
                 exit(0);
             } 
-            delete s;
+            tcpServer.releaseConnection(s);
         }
     }
     return 0;

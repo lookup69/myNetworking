@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
     }
     cout << "connect to " << ip << ":" << port << endl;
 
-    TcpSocket *cli = tcpClient.getConnection();
+    Socket *cli = tcpClient.getConnection();
     if(!cli) {
         printf("getConnection() fail\n");
     }
@@ -59,7 +59,8 @@ int main(int argc, char *argv[])
         printf("%s", buf);
         sleep(1);
     }
-    delete cli;
+
+    tcpClient.releaseConnection(cli);
 
     return 0;
 }
