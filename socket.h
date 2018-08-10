@@ -1,5 +1,6 @@
-#ifndef _NETWORKING_SOCKET_H_
-#define _NETWORKING_SOCKET_H_
+#ifndef __LOOKUP69_SOCKET_H__
+#define __LOOKUP69_SOCKET_H__
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>

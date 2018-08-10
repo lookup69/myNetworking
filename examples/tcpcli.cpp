@@ -1,23 +1,66 @@
-#include "../CTcpNetworking.h"
-#include <stdio.h>
+#include <iostream>
 
-int main()
+#include "../tcpNetwork.h"
+
+using namespace std;
+using namespace lookup69;
+
+static void print_usage(void)
 {
-    CTcpNetworking cli(33333, "192.168.79.112", false);
-    addressInfo_t  cliAddrInfo;
-    char           buf[1024];
+    cout << "Usage:\n";
+    cout << "Default port: 9966\n";
+    cout << "\ttcpcli -ip host [-port port]\n";
+    exit(0);
+}
 
-    if(cli.Connect() < 0){
-        printf("connect fail\n");
+int main(int argc, char *argv[])
+{
+    TcpClient tcpClient;
+    string    ip;
+    int       port = 9966;
+    
+    if(argc >= 3) {
+        for(auto i = 1; i < argc; ++i) {
+            if(!string(argv[i]).compare("--help")) {
+                print_usage();
+            } else if(!string(argv[i]).compare("-ip")) {
+                ++i;
+                if(i < argc) 
+                    ip = argv[i];
+            } else if(!string(argv[i]).compare("-port")) {
+                ++i;
+                if(i < argc) 
+                    port = atoi(argv[i]);
+            }
+        }
+    }
+
+    if(ip.empty() ) 
+        print_usage();
+
+    if(tcpClient.clientInit(ip, port, AF_INET) < 0) {
+        cout << "can not connect to " << ip << ":" << port << endl;
         exit(0);
     }
-    cli.getPeerName(cliAddrInfo);
-    printf("connect success:%s(%d)\n", cliAddrInfo.ip.c_str(), cliAddrInfo.port);
-    memset(buf, 0, sizeof(buf));
-    sprintf(buf, "%s", "client send");
-    cli.Write(buf, strlen(buf));
+    cout << "connect to " << ip << ":" << port << endl;
 
-    memset(buf, 0, sizeof(buf));
-    cli.Read(buf, sizeof(buf));
-    printf("S >>> C:%s\n", buf);
+    Socket *cli = tcpClient.getConnection();
+    if(!cli) {
+        printf("getConnection() fail\n");
+    }
+    for(int i = 0; i < 1000; ++i) {
+        char buf[1024] = {0};
+
+        sprintf(buf, "cnt %d\n", i);
+        printf("%s", buf);
+        cli->write(buf, strlen(buf));
+        memset(buf, 0, sizeof(buf));
+        cli->read(buf, sizeof(buf));
+        printf("%s", buf);
+        sleep(1);
+    }
+
+    tcpClient.releaseConnection(cli);
+
+    return 0;
 }

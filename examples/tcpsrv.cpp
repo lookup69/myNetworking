@@ -1,32 +1,69 @@
-#include "../CTcpNetworking.h"
-#include <stdio.h>
+//#include <string.h>
 
-int main()
+#include <iostream>
+#include "../tcpNetwork.h"
+
+using namespace std;
+using namespace lookup69;
+
+static void print_usage(void)
 {
-    try {
-        CTcpNetworking  srv(33333);
-        addressInfo_t   cliAddrInfo;
-        int             clisd;
-        char            buf[1024];
+    cout << "Usage:\n";
+    cout << "Default port: 9966\n";
+    cout << "\ttcpsrv [-port port]\n";
+    exit(0);
+}
 
-        if(srv.Listen() < 0) {
-            printf("listen() fail\n");
-            exit(0);
-        }
-        while ((clisd = srv.Accept()) != -1) {
-            srv.getPeerName(cliAddrInfo, clisd);
-            printf("connect from:%s(%d)\n", cliAddrInfo.ip.c_str(), cliAddrInfo.port);
-
-            memset(buf, 0, sizeof(buf));
-            srv.Read(buf, sizeof(buf), clisd);
-            printf("C >>> S:%s\n", buf);
-            memset(buf, 0, sizeof(buf));
-            sprintf(buf, "%s", "Server echo");
-            srv.Write(buf, strlen(buf), clisd);
-            close(clisd);
+int main(int argc, char *argv[])
+{
+    TcpServer tcpServer;
+    int       port = 9966;
+    
+    if(argc > 2) {
+        for(auto i = 1; i < argc; ++i) {
+            if(!string(argv[i]).compare("--help")) 
+                print_usage();
+            if(!string(argv[i]).compare("-port")) {
+                ++i;
+                if(i < argc) {
+                    port = atoi(argv[i]);
+                    break;
+                }
+            }
         }
     }
-    catch(const char *e) {
-        printf("%s\n", e);
+
+    cout << "PID:" << getpid() << "    port:" << port << endl;
+    if(tcpServer.serverInit(port, AF_INET) < 0) {
+        printf("serverInit fail\n");
+        exit(0);
     }
+
+    while(1) {
+        addressInfo_t addrInfo;
+        pid_t         pid;
+
+        Socket *s = tcpServer.getConnection();
+        if(s) {
+            s->getAddrInfo(addrInfo);    
+            pid = fork();
+            if(pid == 0) {
+                while(1) {
+                    char rbuf[1024] = {0};
+                    char wbuf[1024] = {0};
+                    
+                    if(s->read(rbuf, sizeof(rbuf)) <= 0)
+                        break;
+                    cout << "C(" << addrInfo.ip << ":" << addrInfo.port << ") ->S(" << getpid() << "):" << rbuf;
+                    sprintf(wbuf, "S(%d)->C: %s\n", getpid(), rbuf);
+                    if(s->write(wbuf, strlen(wbuf)) < 0)
+                        break;
+                }
+                tcpServer.releaseConnection(s);
+                exit(0);
+            } 
+            tcpServer.releaseConnection(s);
+        }
+    }
+    return 0;
 }

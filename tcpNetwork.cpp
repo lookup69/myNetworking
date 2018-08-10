@@ -30,45 +30,6 @@ TcpSocket::~TcpSocket()
 {
 }
 
-int TcpSocket::connect(const std::string &host, uint16_t port, int family)
-{
-    struct addrinfo hints;
-    struct addrinfo *result, *rp;
-    char            _port[32] = {0};
-    
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_addr = NULL;
-    hints.ai_next = NULL;
-    hints.ai_family = family;      /* Allows IPv4 or IPv6 */
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_NUMERICSERV;
-
-    sprintf(_port, "%d", port);
-    printf("port:%s\n", _port);
-
-    if (getaddrinfo(host.c_str(), _port, &hints, &result) != 0) {
-        fprintf(stderr, "[File:%s][Func:%s][Line:%d] getaddrinfo() ... fail\n", __FILE__, __PRETTY_FUNCTION__, __LINE__);
-        return -1;
-    }
-
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
-        m_socket = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-        if (m_socket == -1)
-            continue;
-        
-        if (::connect(m_socket, rp->ai_addr, rp->ai_addrlen) != -1)
-            break; 
-        ::close(m_socket);
-        m_socket = -1;
-    }
-    freeaddrinfo(result);  
-
-    if(m_socket == -1) 
-        return -1;
-
-    return 0;
-}
-
 int TcpSocket::bind(uint16_t port, int family)
 {
     int             optVal;
@@ -104,6 +65,12 @@ int TcpSocket::bind(uint16_t port, int family)
         ::close(m_socket);
         m_socket = -1;
     }
+
+    if((rp == NULL) && (m_socket != -1)) {
+        ::close(m_socket);
+        m_socket = -1;
+    }
+
     freeaddrinfo(result);  
 
     if(m_socket == -1) {
@@ -135,6 +102,50 @@ int TcpSocket::accpet(void)
     return ::accept(m_socket, NULL, 0);
 }
 
+int TcpSocket::connect(const std::string &host, uint16_t port, int family)
+{
+    struct addrinfo hints;
+    struct addrinfo *result, *rp;
+    char            _port[32] = {0};
+    
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_addr = NULL;
+    hints.ai_next = NULL;
+    hints.ai_family = family;      /* Allows IPv4 or IPv6 */
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_NUMERICSERV;
+
+    sprintf(_port, "%d", port);
+    printf("port:%s\n", _port);
+
+    if (getaddrinfo(host.c_str(), _port, &hints, &result) != 0) {
+        fprintf(stderr, "[File:%s][Func:%s][Line:%d] getaddrinfo() ... fail\n", __FILE__, __PRETTY_FUNCTION__, __LINE__);
+        return -1;
+    }
+
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        m_socket = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (m_socket == -1)
+            continue;
+        
+        if (::connect(m_socket, rp->ai_addr, rp->ai_addrlen) != -1)
+            break; 
+        ::close(m_socket);
+        m_socket = -1;
+    }
+
+    if((rp == NULL) && (m_socket != -1)) {
+        ::close(m_socket);
+        m_socket = -1;
+    }
+
+    freeaddrinfo(result);  
+
+    if(m_socket == -1) 
+        return -1;
+
+    return 0;
+}
 
 Socket* TcpSocket::getConnection(void)
 {

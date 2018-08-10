@@ -7,8 +7,8 @@
  *
  */
 
-#ifndef __LOOKUP69_TCP_NETWORKING_H__
-#define __LOOKUP69_TCP_NETWORKING_H__
+#ifndef __LOOKUP69_TCP_NETWORK_H__
+#define __LOOKUP69_TCP_NETWORK_H__
 
 
 #include <unistd.h>
